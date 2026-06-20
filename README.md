@@ -40,6 +40,3 @@ RAPFI_API_KEY=<your-api-key>
 - Docker 部署说明：`DOCKER_DEPLOY.md`
 - 客户端/机器人适配说明：`WZQ_API_ADAPTER_GUIDE.md`
 
-## 仓库内容
-
-仓库保留 API 服务代码、部署文件、文档，以及 Docker 部署需要的 Linux Rapfi 引擎文件。运行时日志、棋局存档、本地环境变量、下载包、GUI 版 YixinBoard 和不需要的跨平台引擎二进制不会提交。
