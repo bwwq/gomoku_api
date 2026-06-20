@@ -1,0 +1,14 @@
+{
+  "host": "127.0.0.1",
+  "port": 8787,
+  "idleSleepSeconds": 180,
+  "maxActiveEngines": 3,
+  "engineDir": "Rapfi-YixinBoard",
+  "engineExe": "Rapfi-YixinBoard/engine.exe",
+  "storageDir": "games",
+  "defaultBoardSize": 15,
+  "defaultRule": "freestyle",
+  "defaultAiColor": "white",
+  "defaultLevel": 2,
+  "apiKey": ""
+}

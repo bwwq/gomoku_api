@@ -1,0 +1,15 @@
+.git
+.env
+.env.*
+!.env.example
+downloads
+Rapfi-YixinBoard
+games/*
+api/*.log
+**/__pycache__
+**/*.pyc
+*.7z
+Rapfi-engine/pbrain-rapfi-windows-*
+Rapfi-engine/pbrain-rapfi-macos-*
+Rapfi-engine/pbrain-rapfi-linux-clang-avx512*
+Rapfi-engine/pbrain-rapfi-linux-clang-avxvnni

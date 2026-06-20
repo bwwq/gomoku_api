@@ -1,0 +1,31 @@
+services:
+  rapfi-api:
+    build: .
+    container_name: rapfi-api
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+    environment:
+      RAPFI_HOST: "0.0.0.0"
+      RAPFI_PORT: "8787"
+      RAPFI_IDLE_SLEEP_SECONDS: "180"
+      RAPFI_MAX_ACTIVE_ENGINES: "3"
+      RAPFI_ENGINE_DIR: "Rapfi-engine"
+      RAPFI_ENGINE_EXE: "Rapfi-engine/pbrain-rapfi-linux-clang-avx2"
+      RAPFI_STORAGE_DIR: "games"
+      RAPFI_DEFAULT_LEVEL: "2"
+      RAPFI_API_KEY: "${RAPFI_API_KEY:-}"
+    volumes:
+      - ./games:/app/games
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/health', timeout=2).read()",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s

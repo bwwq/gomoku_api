@@ -1,0 +1,15 @@
+* text=auto
+
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+Dockerfile text eol=lf
+
+*.cmd text eol=crlf
+
+*.bin binary
+*.lz4 binary
+*.exe binary
+*.dll binary
