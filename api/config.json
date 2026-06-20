@@ -10,5 +10,6 @@
   "defaultRule": "freestyle",
   "defaultAiColor": "white",
   "defaultLevel": 2,
-  "apiKey": ""
+  "apiKey": "",
+  "rpm": 60
 }

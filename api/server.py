@@ -104,6 +104,35 @@ class EngineError(Exception):
     pass
 
 
+class RateLimiter:
+    """Per-key sliding-window rate limiter."""
+
+    def __init__(self, rpm: int):
+        self.rpm = rpm
+        self.lock = threading.RLock()
+        self._windows: dict[str, list[float]] = {}
+
+    def allow(self, key: str) -> bool:
+        if self.rpm <= 0:
+            return True
+        now = time.time()
+        cutoff = now - 60
+        with self.lock:
+            timestamps = self._windows.get(key, [])
+            timestamps = [t for t in timestamps if t > cutoff]
+            if len(timestamps) >= self.rpm:
+                return False
+            timestamps.append(now)
+            self._windows[key] = timestamps
+            # 定期清理过期 key，防止内存泄漏
+            if len(self._windows) > 200:
+                self._windows = {
+                    k: v for k, v in self._windows.items()
+                    if v and v[-1] > cutoff
+                }
+            return True
+
+
 def now_iso() -> str:
     return datetime.now().astimezone().isoformat(timespec="seconds")
 
@@ -131,6 +160,7 @@ def read_json_config() -> dict[str, Any]:
         "RAPFI_DEFAULT_AI_COLOR": ("defaultAiColor", str),
         "RAPFI_DEFAULT_LEVEL": ("defaultLevel", int),
         "RAPFI_API_KEY": ("apiKey", str),
+        "RAPFI_RPM": ("rpm", int),
     }
     for env_name, (key, caster) in env_map.items():
         value = os.environ.get(env_name)
@@ -903,6 +933,8 @@ class GameManager:
 class ApiHandler(BaseHTTPRequestHandler):
     manager: GameManager
     api_key: str = ""
+    rate_limiter: RateLimiter | None = None
+    rpm: int = 0
 
     def do_OPTIONS(self) -> None:
         self._send_json(200, {"ok": True})
@@ -926,6 +958,9 @@ class ApiHandler(BaseHTTPRequestHandler):
         try:
             if not self._is_public_route(method) and not self._is_authorized():
                 raise ApiError(401, "unauthorized", "missing or invalid API key")
+            if self.rate_limiter and not self._is_public_route(method):
+                if not self.rate_limiter.allow(self._rate_limit_key()):
+                    raise ApiError(429, "rate_limited", f"rate limit exceeded ({self.rpm} rpm). please slow down")
             result = self._route(method)
             self._send_json(200, result)
         except ApiError as exc:
@@ -972,6 +1007,16 @@ class ApiHandler(BaseHTTPRequestHandler):
                 return self.manager.patch_settings(game_id, body)
 
         raise ApiError(404, "not_found", "route not found")
+
+    def _rate_limit_key(self) -> str:
+        """Extract the key used for rate limiting."""
+        # Prefer X-API-Key or Authorization header
+        api_key = self.headers.get("X-API-Key", "").strip()
+        if not api_key:
+            auth = self.headers.get("Authorization", "").strip()
+            if auth.lower().startswith("bearer "):
+                api_key = auth[7:].strip()
+        return api_key or self.client_address[0]
 
     def _is_public_route(self, method: str) -> bool:
         if method == "OPTIONS":
@@ -1034,10 +1079,15 @@ def main() -> None:
     manager = GameManager(config)
     ApiHandler.manager = manager
     ApiHandler.api_key = str(config.get("apiKey", "") or "")
+    rpm = int(config.get("rpm", 0))
+    ApiHandler.rpm = rpm
+    ApiHandler.rate_limiter = RateLimiter(rpm) if rpm > 0 else None
     host = config.get("host", "127.0.0.1")
     port = int(config.get("port", 8787))
     server = RapfiApiServer((host, port), ApiHandler)
     print(f"Rapfi API listening on http://{host}:{port}")
+    if rpm > 0:
+        print(f"Rate limiter: {rpm} RPM per key")
     try:
         server.serve_forever()
     finally:
